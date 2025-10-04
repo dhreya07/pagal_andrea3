@@ -77,9 +77,9 @@ $config['ENVIRONMENT']             = 'development';
 |	http://example.com/
 |
 | WARNING: You MUST set this value!
-|
+https://salazar-jhon-lawrence-qji0.onrender.com
 */
-$config['base_url'] 				= 'http://localhost:3002/';
+$config['base_url'] 				= 'https://pagal-andrea.onrender.com';
 
 /*
 |--------------------------------------------------------------------------
