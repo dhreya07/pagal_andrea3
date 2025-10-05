@@ -263,26 +263,27 @@ if ( ! function_exists('get_config'))
 	}
 }
 
-if (!function_exists('config_item')) {
-    /**
-     * Global Function to access config
-     *
-     * @param string $item
-     * @return mixed
-     */
-    function config_item($item)
-    {
-        static $_config;
+if ( ! function_exists('config_item'))
+{
+	/**
+	 * Global Function to access config
+	 *
+	 * @param string $item
+	 * @return mixed
+	 */
+	function config_item($item)
+	{
+		static $_config;
 
-        if (empty($_config)) {
-            // Defensive: ensure get_config() returns an array
-            $_config[0] = get_config() ?? [];
-        }
+		if (empty($_config))
+		{
+			// references cannot be directly assigned to static variables, so we use an array
+			$_config[0] =& get_config();
+		}
 
-        return $_config[0][$item] ?? null;
-    }
+		return isset($_config[0][$item]) ? $_config[0][$item] : NULL;
+	}
 }
-
 
 if ( ! function_exists('autoload_config'))
 {
