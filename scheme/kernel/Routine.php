@@ -44,54 +44,59 @@ if ( ! function_exists('load_class'))
 	 * @param  array $params    Class parameters if present
 	 * @return object
 	 */
-	function &load_class($class, $directory = '', $params = NULL, $object_name = NULL)
-	{
-		$LAVA = Registry::instance();
-		$class_name = ucfirst(strtolower($class)); // Used only as fallback
-		$object_name = $object_name !== NULL ? strtolower($object_name) : strtolower($class);
+	function load_class(string $class, string $directory = '', $params = null, $object_name = null)
+{
+    $LAVA = Registry::instance();
+    $object_name = $object_name ?? strtolower($class);
 
-		// Return if already loaded
-		if ($LAVA->get_object($object_name) !== NULL) {
-			$object = $LAVA->get_object($object_name);
-			return $object;
-		}
+    // Return if already loaded
+    if ($existing = $LAVA->get_object($object_name)) {
+        return $existing;
+    }
 
-		// Try to find the class file regardless of case
-		foreach ([APP_DIR, SYSTEM_DIR] as $base_path) {
-			$dir_path = rtrim($base_path . $directory, '/\\') . DIRECTORY_SEPARATOR;
+    // Search in both APP_DIR and SYSTEM_DIR
+    foreach ([APP_DIR, SYSTEM_DIR] as $base_path) {
+        $dir_path = rtrim($base_path . $directory, '/\\') . DIRECTORY_SEPARATOR;
 
-			if (is_dir($dir_path)) {
-				foreach (scandir($dir_path) as $file) {
-					if (strcasecmp($file, $class . '.php') === 0) {
-						require_once $dir_path . $file;
+        if (!is_dir($dir_path)) {
+            continue;
+        }
 
-						// Try to find the actual class name
-						$declared = get_declared_classes();
-						$match = NULL;
-						foreach ($declared as $declared_class) {
-							if (strcasecmp($declared_class, $class) === 0) {
-								$match = $declared_class;
-								break;
-							}
-						}
+        foreach (scandir($dir_path) as $file) {
+            // Case-insensitive file match
+            if (strcasecmp($file, $class . '.php') !== 0) {
+                continue;
+            }
 
-						if ($match === NULL) {
-							throw new RuntimeException("Class '{$class}' not found in file.");
-						}
+            require_once $dir_path . $file;
 
-						loaded_class($class, $object_name);
-						$instance = isset($params) ? new $match($params) : new $match();
-						$LAVA->store_object($object_name, $instance);
+            // Find the actual class name in a case-insensitive way
+            $match = null;
+            foreach (get_declared_classes() as $declared_class) {
+                if (strcasecmp($declared_class, $class) === 0) {
+                    $match = $declared_class;
+                    break;
+                }
+            }
 
-						$object = $LAVA->get_object($object_name);
-						return $object;
-					}
-				}
-			}
-		}
+            if ($match === null) {
+                throw new RuntimeException("Class '{$class}' not found in file '{$file}'.");
+            }
 
-		throw new RuntimeException("Unable to locate the {$class} class in {$directory}.");
-	}
+            // Register loaded class
+            loaded_class($class, $object_name);
+
+            // Instantiate the class
+            $instance = isset($params) ? new $match($params) : new $match();
+            $LAVA->store_object($object_name, $instance);
+
+            return $LAVA->get_object($object_name);
+        }
+    }
+
+    throw new RuntimeException("Unable to locate the '{$class}' class in '{$directory}'.");
+}
+
 }
 
 if ( ! function_exists('loaded_class'))
@@ -103,7 +108,7 @@ if ( ! function_exists('loaded_class'))
 	 * @param	string
 	 * @return	array
 	 */
-	function &loaded_class($class = '', $object_name = '')
+	function loaded_class($class = '', $object_name = '')
 	{
 		static $_is_loaded = array();
 
@@ -127,7 +132,7 @@ if ( ! function_exists('show_404'))
 	 */
 	function show_404($heading = '', $message = '', $template = '')
 	{
-		$errors =& load_class('Errors', 'kernel');
+		$errors = load_class('Errors', 'kernel');
 		return $errors->show_404($heading, $message, $template);
 	}
 }
@@ -143,7 +148,7 @@ if ( ! function_exists('show_error'))
 	 */
 	function show_error($heading = '', $message = '', $template = 'error_general', $code = 500)
 	{
-	  	$errors =& load_class('Errors', 'kernel');
+	  	$errors = load_class('Errors', 'kernel');
 	  	return $errors->show_error($heading, $message, $template, $code);
 	}
 }
@@ -176,12 +181,12 @@ if ( ! function_exists('_exception_handler'))
 	{
 		if(config_item('log_threshold') == 1 || config_item('log_threshold') == 3)
 		{
-			$logger =& load_class('logger', 'kernel');
+			$logger = load_class('logger', 'kernel');
 			$logger->log('error', get_class($e), $e->getMessage(), $e->getFile(), $e->getLine());
 		}
 		if(strtolower(config_item('ENVIRONMENT') == 'development'))
 		{
-			$exception =& load_class('Errors', 'kernel');
+			$exception = load_class('Errors', 'kernel');
 			$exception->show_exception($e);
 		}
 		
@@ -223,44 +228,46 @@ if ( ! function_exists('_error_handler'))
 		$severity_name = $error_levels[$severity] ?? "UNKNOWN_ERROR";
 
 		if (config_item('log_threshold') == 1 || config_item('log_threshold') == 3) {
-			$logger =& load_class('logger', 'kernel');
+			$logger = load_class('logger', 'kernel');
 			$logger->log('error', $severity_name, $errstr, $errfile, $errline);
 		}
 
 		if (strtolower(config_item('ENVIRONMENT')) == 'development') { 
-			$error =& load_class('Errors', 'kernel');
+			$error = load_class('Errors', 'kernel');
 			$error->show_php_error($severity_name, $errstr, $errfile, $errline);
 		}
 	}
 }
 
-if ( ! function_exists('get_config'))
-{
-	/**
-	 * To access config from config config/config.php
-	 *
-	 * @return void
-	 */
-	function &get_config()
-	{
-		static $config;
+if (!function_exists('get_config')) {
+    /**
+     * Returns global config array. Optionally merges new config.
+     *
+     * @param array|null $new_config
+     * @return array
+     */
+    function get_config(?array $new_config = null)
+    {
+        static $config = null;
 
-		if ( file_exists(APP_DIR . 'config/config.php') )
-		{
-			require_once APP_DIR . 'config/config.php';
+        if ($config === null) {
+            // Load main config.php first
+            $main_file = APP_DIR . 'config/config.php';
 
-			if ( isset($config) OR is_array($config) )
-			{
-				foreach( $config as $key => $val )
-				{
-					$config[$key] = $val;
-				}
+            require_once($main_file); // must define $config array
 
-				return $config;
-			}
-		} else
-			show_404('404 Not Found', 'The configuration file does not exist');
-	}
+            if (!isset($config) || !is_array($config)) {
+                throw new RuntimeException('config.php must define $config array');
+            }
+        }
+
+        // Merge new configs if provided
+        if (is_array($new_config)) {
+            $config = array_merge($config, $new_config);
+        }
+
+        return $config;
+    }
 }
 
 if ( ! function_exists('config_item'))
@@ -272,17 +279,10 @@ if ( ! function_exists('config_item'))
 	 * @return mixed
 	 */
 	function config_item($item)
-	{
-		static $_config;
-
-		if (empty($_config))
-		{
-			// references cannot be directly assigned to static variables, so we use an array
-			$_config[0] =& get_config();
-		}
-
-		return isset($_config[0][$item]) ? $_config[0][$item] : NULL;
-	}
+    {
+        $config = get_config();
+        return $config[$item] ?? null;
+    }
 }
 
 if ( ! function_exists('autoload_config'))
@@ -292,7 +292,7 @@ if ( ! function_exists('autoload_config'))
 	 *
 	 * @return void
 	 */
-	function &autoload_config()
+	function autoload_config()
 	{
 		static $autoload;
 
@@ -321,7 +321,7 @@ if ( ! function_exists('database_config'))
 	 *
 	 * @return void
 	 */
-	function &database_config()
+	function database_config()
 	{
 		static $database;
 
@@ -350,7 +350,7 @@ if ( ! function_exists('route_config'))
 	 *
 	 * @return void
 	 */
-	function &route_config()
+	function route_config()
 	{
 		static $route;
 
