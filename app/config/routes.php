@@ -44,18 +44,18 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
 */
 
 // Registration is the default page
-$router->match('/', 'UserController::register', ['GET','POST']);
+$router->match('/', 'AuthController::register', ['GET','POST']);
 
 // Auth routes
-$router->match('/auth/register', 'UserController::register', ['GET','POST']);
-$router->match('/auth/login', 'UserController::login', ['GET','POST']);
-$router->get('/auth/logout', 'UserController::logout');
+$router->match('/auth/register', 'AuthController::register', ['GET','POST']);
+$router->match('/auth/login', 'AuthController::login', ['GET','POST']);
+$router->get('/auth/logout', 'AuthController::logout');
 
 // Homepage (after login)
-$router->get('/users', 'UserController::index');
-$router->get('/users/dashboard', 'UserController::dashboard');
+$router->get('/users', 'AuthController::index');
+$router->get('/users/dashboard', 'AuthController::dashboard');
 
 // Users CRUD
-$router->match('/users/create', 'UserController::create', ['GET', 'POST']);
-$router->match('/users/update/{id}', 'UserController::update', ['GET', 'POST']);
-$router->get('/users/delete/{id}', 'UserController::delete');
+$router->match('/users/create', 'AuthController::create', ['GET', 'POST']);
+$router->match('/users/update/{id}', 'AuthController::update', ['GET', 'POST']);
+$router->get('/users/delete/{id}', 'AuthController::delete');
