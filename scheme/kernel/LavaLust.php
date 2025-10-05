@@ -75,33 +75,31 @@ $performance->start('lavalust');
 /**
  * Deployment Environment
  */
-/**
- * Set error reporting based on environment
- */
-$env = config_item('ENVIRONMENT');
-$env = is_string($env) ? strtolower($env) : 'development';
+switch (strtolower(config_item('ENVIRONMENT')))
+{
+	case 'development':
+		_handlers();
+		error_reporting(-1);
+		ini_set('display_errors', 1);
+	break;
 
-switch ($env) {
-    case 'development':
-        _handlers();
-        error_reporting(-1);
-        ini_set('display_errors', 1);
-        break;
+	case 'testing':
+	case 'production':		
+		ini_set('display_errors', 0);
+		error_reporting(0);
+		_handlers();
+	break;
 
-    case 'testing':
-    case 'production':
-        ini_set('display_errors', 0);
-        error_reporting(0);
-        _handlers();
-        break;
-
-    default:
-        _handlers();
-        error_reporting(-1);
-        ini_set('display_errors', 1);
+	default :
+		_handlers();
+		error_reporting(-1);
+		ini_set('display_errors', 1);
 }
+
 /**
- * Set the error, exception and shutdown handlers
+ * Error Classes to show errors
+ *
+ * @return void
  */
 function _handlers()
 {
